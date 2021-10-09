@@ -34,6 +34,29 @@ pub enum Key {
   PassKey,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[repr(u8)]
+pub enum Action {
+  Open = 1,
+  RefusedUnknownFinger = 2,
+  RefusedTimeframeA = 3,
+  RefusedTimeframeB = 4,
+  RefusedInactive = 5,
+  RefusedOnlyAlwaysUsers = 6,
+  FingerscannerNotPaired = 7,
+  DigitalInput = 8,
+  OneMinuteCodeLock = b'A',
+  FifteenMinuteCodeLock = b'B',
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub enum DigitalInput {
+  Input1,
+  Input2,
+  Input3,
+  Input4,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct Multi {
   user_id: u16,
@@ -43,8 +66,8 @@ pub struct Multi {
   key: Key,
   finger_scanner_serial: String,
   finger_scanner_name: String,
-  action: usize,
-  input_id: Option<usize>,
+  action: Action,
+  input_id: Option<DigitalInput>,
 }
 
 fn digit(s: &str) -> nom::IResult<&str, char> {
@@ -92,18 +115,18 @@ fn alphanumeric_n(n: usize) -> impl FnMut(&str) -> nom::IResult<&str, String> {
   }
 }
 
-fn digit_min_max(min: usize, max: usize) -> impl FnMut(&str) -> nom::IResult<&str, usize> {
+fn digit_min_max(min: u32, max: u32) -> impl FnMut(&str) -> nom::IResult<&str, char> {
   move |s: &str| {
-    match digit_n(1)(s)? {
-      (_, n) if n < min || n > max => {
-        Err(nom::Err::Error(nom::error::Error::new(s, nom::error::ErrorKind::IsA)))
+    match digit(s)? {
+      (s, n) if n.to_digit(10).map(|n| n >= min || n <= max).unwrap_or(false) => {
+        Ok((s, n))
       },
-      (s, n) => Ok((s, n))
+      _ => Err(nom::Err::Error(nom::error::Error::new(s, nom::error::ErrorKind::IsA)))
     }
   }
 }
 
-fn optional_digit_min_max(min: usize, max: usize) -> impl FnMut(&str) -> nom::IResult<&str, Option<usize>> {
+fn optional_digit_min_max(min: u32, max: u32) -> impl FnMut(&str) -> nom::IResult<&str, Option<char>> {
   use nom::character::complete::char;
 
   move |s: &str| {
@@ -118,6 +141,7 @@ fn optional_digit_min_max(min: usize, max: usize) -> impl FnMut(&str) -> nom::IR
 
 impl Multi {
   fn nom(s: &str) -> nom::IResult<&str, Self> {
+    use nom::branch::alt;
     use nom::character::{complete::{anychar, char}};
 
     let (s, _) = char('1')(s)?;
@@ -135,29 +159,33 @@ impl Multi {
     let (s, _) = char(separator)(s)?;
     let (s, user_status) = optional_digit_min_max(0, 1)(s)?;
     let user_status = user_status
-      .map(|n| if n == 1 { UserStatus::Active } else { UserStatus::Inactive });
+      .map(|n| match n {
+        '1' => UserStatus::Active,
+        '2' => UserStatus::Inactive,
+        _ => unreachable!(),
+      });
     let (s, _) = char(separator)(s)?;
     let (s, finger_id) = optional_digit_min_max(0, 9)(s)?;
     let finger = finger_id.map(|f| match f {
-        1 => Finger::LeftPinky,
-        2 => Finger::LeftRing,
-        3 => Finger::LeftMiddle,
-        4 => Finger::LeftPointer,
-        5 => Finger::LeftThumb,
-        6 => Finger::RightThumb,
-        7 => Finger::RightPointer,
-        8 => Finger::RightMiddle,
-        9 => Finger::RightRing,
-        0 => Finger::RightPinky,
+        '1' => Finger::LeftPinky,
+        '2' => Finger::LeftRing,
+        '3' => Finger::LeftMiddle,
+        '4' => Finger::LeftPointer,
+        '5' => Finger::LeftThumb,
+        '6' => Finger::RightThumb,
+        '7' => Finger::RightPointer,
+        '8' => Finger::RightMiddle,
+        '9' => Finger::RightRing,
+        '0' => Finger::RightPinky,
         _ => unreachable!(),
       });
     let (s, _) = char(separator)(s)?;
     let (s, key) = optional_digit_min_max(1, 4)(s)?;
     let key = match key {
-      Some(1) => Key::Key1,
-      Some(2) => Key::Key2,
-      Some(3) => Key::Key3,
-      Some(4) => Key::Key4,
+      Some('1') => Key::Key1,
+      Some('2') => Key::Key2,
+      Some('3') => Key::Key3,
+      Some('4') => Key::Key4,
       None => Key::PassKey,
       _ => unreachable!(),
     };
@@ -167,9 +195,29 @@ impl Multi {
     let (s, finger_scanner_name) = alphanumeric_n(4)(s)?;
     let finger_scanner_name = finger_scanner_name.trim_end().to_owned();
     let (s, _) = char(separator)(s)?;
-    let (s, action) = digit_min_max(1, 8)(s)?;
+    let (s, action) = alt((digit_min_max(1, 8), char('A'), char('B')))(s)?;
+    let action = match action {
+      '1' => Action::Open,
+      '2' => Action::RefusedUnknownFinger,
+      '3' => Action::RefusedTimeframeA,
+      '4' => Action::RefusedTimeframeB,
+      '5' => Action::RefusedInactive,
+      '6' => Action::RefusedOnlyAlwaysUsers,
+      '7' => Action::FingerscannerNotPaired,
+      '8' => Action::DigitalInput,
+      'A' => Action::OneMinuteCodeLock,
+      'B' => Action::FifteenMinuteCodeLock,
+      _ => unreachable!(),
+    };
     let (s, _) = char(separator)(s)?;
     let (s, input_id) = optional_digit_min_max(1, 4)(s)?;
+    let input_id = input_id.map(|f| match f {
+        '1' => DigitalInput::Input1,
+        '2' => DigitalInput::Input2,
+        '3' => DigitalInput::Input3,
+        '4' => DigitalInput::Input4,
+        _ => unreachable!(),
+      });
 
     Ok((s, Multi {
       user_id: user_id as u16,
@@ -214,7 +262,7 @@ mod tests {
     assert_eq!(packet.key, Key::Key2);
     assert_eq!(packet.finger_scanner_serial, "80156809150025");
     assert_eq!(packet.finger_scanner_name, "GAR");
-    assert_eq!(packet.action, 1);
+    assert_eq!(packet.action, Action::Open);
     assert_eq!(packet.input_id, None);
   }
 }
