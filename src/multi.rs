@@ -67,7 +67,7 @@ pub struct Multi {
   finger_scanner_serial: String,
   finger_scanner_name: String,
   action: Action,
-  input_id: Option<DigitalInput>,
+  input: Option<DigitalInput>,
 }
 
 fn digit(s: &str) -> nom::IResult<&str, char> {
@@ -140,6 +140,42 @@ fn optional_digit_min_max(min: u32, max: u32) -> impl FnMut(&str) -> nom::IResul
 }
 
 impl Multi {
+  pub fn user_id(&self) -> u16 {
+    self.user_id
+  }
+
+  pub fn user_name(&self) -> Option<&str> {
+    self.user_name.as_deref()
+  }
+
+  pub fn user_staus(&self) -> Option<UserStatus> {
+    self.user_status.clone()
+  }
+
+  pub fn finger(&self) -> Option<Finger> {
+    self.finger.clone()
+  }
+
+  pub fn key(&self) -> Key {
+    self.key.clone()
+  }
+
+  pub fn finger_scanner_serial(&self) -> &str {
+    &self.finger_scanner_serial
+  }
+
+  pub fn finger_scanner_name(&self) -> &str {
+    &self.finger_scanner_name
+  }
+
+  pub fn action(&self) -> Action {
+    self.action.clone()
+  }
+
+  pub fn input(&self) -> Option<DigitalInput> {
+    self.input.clone()
+  }
+
   fn nom(s: &str) -> nom::IResult<&str, Self> {
     use nom::branch::alt;
     use nom::character::{complete::{anychar, char}};
@@ -211,7 +247,7 @@ impl Multi {
     };
     let (s, _) = char(separator)(s)?;
     let (s, input_id) = optional_digit_min_max(1, 4)(s)?;
-    let input_id = input_id.map(|f| match f {
+    let input = input_id.map(|f| match f {
         '1' => DigitalInput::Input1,
         '2' => DigitalInput::Input2,
         '3' => DigitalInput::Input3,
@@ -228,7 +264,7 @@ impl Multi {
       finger_scanner_serial,
       finger_scanner_name,
       action,
-      input_id,
+      input,
     }))
   }
 }
@@ -263,6 +299,6 @@ mod tests {
     assert_eq!(packet.finger_scanner_serial, "80156809150025");
     assert_eq!(packet.finger_scanner_name, "GAR");
     assert_eq!(packet.action, Action::Open);
-    assert_eq!(packet.input_id, None);
+    assert_eq!(packet.input, None);
   }
 }
