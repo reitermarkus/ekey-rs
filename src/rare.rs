@@ -1,3 +1,4 @@
+#[derive(Debug, Clone)]
 pub struct Rare {
   pub version: i32,
   pub cmd: i32,
