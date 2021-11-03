@@ -6,12 +6,14 @@ use serde::Serialize;
 const UNDEFINED_CHAR: char = '-';
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum UserStatus {
   Active,
   Inactive,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Finger {
   LeftPinky = 1,
   LeftRing = 2,
@@ -26,6 +28,7 @@ pub enum Finger {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Key {
   Key1,
   Key2,
@@ -35,6 +38,7 @@ pub enum Key {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
 #[repr(u8)]
 pub enum Action {
   Open = 1,
@@ -50,6 +54,7 @@ pub enum Action {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum DigitalInput {
   Input1,
   Input2,
@@ -58,6 +63,7 @@ pub enum DigitalInput {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub struct Multi {
   user_id: u16,
   user_name: Option<String>,
