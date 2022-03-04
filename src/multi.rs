@@ -284,7 +284,7 @@ impl FromStr for Multi {
 
     match all_consuming(Self::nom)(s).finish() {
       Ok((_, multi)) => Ok(multi),
-      Err(_) => return Err(()),
+      Err(_) => Err(()),
     }
   }
 }
