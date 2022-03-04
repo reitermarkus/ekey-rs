@@ -17,9 +17,6 @@ pub struct Rare {
 impl Rare {
   #[allow(unused)]
   fn nom(b: &[u8]) -> nom::IResult<&[u8], Self> {
-    let (b, version) =
-
-    todo!();
-    Ok((b, version))
+    todo!()
   }
 }
