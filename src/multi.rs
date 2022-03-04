@@ -77,7 +77,7 @@ pub struct Multi {
 }
 
 fn digit(s: &str) -> nom::IResult<&str, char> {
-  match s.chars().nth(0) {
+  match s.chars().next() {
     Some(c) if c.is_digit(10) => {
       Ok((&s[1..], c))
     },
@@ -86,7 +86,7 @@ fn digit(s: &str) -> nom::IResult<&str, char> {
 }
 
 fn alphanumeric(s: &str) -> nom::IResult<&str, char> {
-  match s.chars().nth(0) {
+  match s.chars().next() {
     Some(c) if c.is_alphanumeric() || c == ' ' || c == '*' => {
       Ok((&s[1..], c))
     },
