@@ -1,4 +1,5 @@
-use std::str::FromStr;
+use core::str::FromStr;
+use alloc::string::String;
 
 use nom::multi::fold_many_m_n;
 use serde::Serialize;
