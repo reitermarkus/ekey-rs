@@ -86,7 +86,7 @@ impl Home {
     let (input, _) = char(separator)(input)?;
     let (input, relay) = Relay::nom(input)?;
 
-    Ok((input, Self { user_id, finger, finger_scanner_serial: finger_scanner_serial.to_owned(), action, relay }))
+    Ok((input, Self { user_id, finger, finger_scanner_serial, action, relay }))
   }
 }
 
