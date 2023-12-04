@@ -2,12 +2,14 @@ use core::str::FromStr;
 use alloc::string::String;
 use alloc::borrow::ToOwned;
 
-use nom::multi::fold_many_m_n;
+use nom::branch::alt;
+use nom::character::{complete::{anychar, char}};
+use nom::combinator::value;
 use serde::Serialize;
 
-const UNDEFINED_CHAR: char = '-';
+use crate::{Action, Finger, nom::{digit_n, alphanumeric_n}};
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum UserStatus {
   /// Active.
@@ -16,32 +18,17 @@ pub enum UserStatus {
   Inactive,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Finger {
-  /// Left pinky finger.
-  LeftPinky = 1,
-  /// Left ring finger.
-  LeftRing = 2,
-  /// Left middle finger.
-  LeftMiddle = 3,
-  /// Left pointer finger.
-  LeftPointer = 4,
-  /// Left thumb.
-  LeftThumb = 5,
-  /// Right thumb.
-  RightThumb = 6,
-  /// Right pointer finger.
-  RightPointer = 7,
-  /// Right middle finger.
-  RightMiddle = 8,
-  /// Right ring finger.
-  RightRing = 9,
-  /// Right pinky finger.
-  RightPinky = 0,
+impl UserStatus {
+  pub(crate) fn nom(input: &str) -> nom::IResult<&str, Option<Self>> {
+    alt((
+      value(Some(Self::Active), char('1')),
+      value(Some(Self::Inactive), char('2')),
+      value(None, char('-')),
+    ))(input)
+  }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Key {
   /// Key 1
@@ -52,37 +39,21 @@ pub enum Key {
   Key3,
   /// Key 2
   Key4,
-  /// Pass Key
-  PassKey,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
-#[repr(u8)]
-pub enum Action {
-  /// Open.
-  Open = 1,
-  /// Refused unknown finger.
-  RefusedUnknownFinger = 2,
-  /// Refused timeframe A.
-  RefusedTimeframeA = 3,
-  /// Refused timeframe B.
-  RefusedTimeframeB = 4,
-  /// Refused inactive.
-  RefusedInactive = 5,
-  /// Refused only always users.
-  RefusedOnlyAlwaysUsers = 6,
-  /// Finger scanner not paired.
-  FingerScannerNotPaired = 7,
-  /// Digital input.
-  DigitalInput = 8,
-  /// One minute code lock.
-  OneMinuteCodeLock = b'A',
-  /// Fifteen minute code lock.
-  FifteenMinuteCodeLock = b'B',
+impl Key {
+  pub(crate) fn nom(input: &str) -> nom::IResult<&str, Option<Self>> {
+    alt((
+      value(Some(Self::Key1), char('1')),
+      value(Some(Self::Key2), char('2')),
+      value(Some(Self::Key3), char('3')),
+      value(Some(Self::Key4), char('4')),
+      value(None, char('-')),
+    ))(input)
+  }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DigitalInput {
   /// Input 1
@@ -95,6 +66,18 @@ pub enum DigitalInput {
   Input4,
 }
 
+impl DigitalInput {
+  pub(crate) fn nom(input: &str) -> nom::IResult<&str, Option<Self>> {
+    alt((
+      value(Some(Self::Input1), char('1')),
+      value(Some(Self::Input2), char('2')),
+      value(Some(Self::Input3), char('3')),
+      value(Some(Self::Input4), char('4')),
+      value(None, char('-')),
+    ))(input)
+  }
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub struct Multi {
@@ -102,81 +85,13 @@ pub struct Multi {
   user_name: Option<String>,
   user_status: Option<UserStatus>,
   finger: Option<Finger>,
-  key: Key,
+  key: Option<Key>,
   finger_scanner_serial: String,
   finger_scanner_name: String,
   action: Action,
   input: Option<DigitalInput>,
 }
 
-fn digit(s: &str) -> nom::IResult<&str, char> {
-  match s.chars().next() {
-    Some(c) if c.is_digit(10) => {
-      Ok((&s[1..], c))
-    },
-    _ => Err(nom::Err::Error(nom::error::Error::new(s, nom::error::ErrorKind::IsA))),
-  }
-}
-
-fn alphanumeric(s: &str) -> nom::IResult<&str, char> {
-  match s.chars().next() {
-    Some(c) if c.is_alphanumeric() || c == ' ' || c == '*' => {
-      Ok((&s[1..], c))
-    },
-    _ => Err(nom::Err::Error(nom::error::Error::new(s, nom::error::ErrorKind::IsA))),
-  }
-}
-
-fn digit_n(n: usize) -> impl FnMut(&str) -> nom::IResult<&str, usize> {
-  move |s: &str| {
-    fold_many_m_n(
-      n, n,
-      digit,
-      || 0,
-      |acc: usize, c| {
-        acc * 10 + c.to_digit(10).unwrap_or(0) as usize
-      }
-    )(s)
-  }
-}
-
-fn alphanumeric_n(n: usize) -> impl FnMut(&str) -> nom::IResult<&str, String> {
-  move |s: &str| {
-    fold_many_m_n(
-      n, n,
-      alphanumeric,
-      String::new,
-      |mut s: String, c| {
-        s.push(c);
-        s
-      }
-    )(s)
-  }
-}
-
-fn digit_min_max(min: u32, max: u32) -> impl FnMut(&str) -> nom::IResult<&str, char> {
-  move |s: &str| {
-    match digit(s)? {
-      (s, n) if n.to_digit(10).map(|n| n >= min || n <= max).unwrap_or(false) => {
-        Ok((s, n))
-      },
-      _ => Err(nom::Err::Error(nom::error::Error::new(s, nom::error::ErrorKind::IsA)))
-    }
-  }
-}
-
-fn optional_digit_min_max(min: u32, max: u32) -> impl FnMut(&str) -> nom::IResult<&str, Option<char>> {
-  use nom::character::complete::char;
-
-  move |s: &str| {
-    if let Ok((s, _)) = char::<&str, nom::error::Error<&str>>(UNDEFINED_CHAR)(s) {
-      return Ok((s, None))
-    }
-
-    let (s, n) = digit_min_max(min, max)(s)?;
-    Ok((s, Some(n)))
-  }
-}
 
 impl Multi {
   pub fn user_id(&self) -> u16 {
@@ -188,15 +103,15 @@ impl Multi {
   }
 
   pub fn user_staus(&self) -> Option<UserStatus> {
-    self.user_status.clone()
+    self.user_status
   }
 
   pub fn finger(&self) -> Option<Finger> {
-    self.finger.clone()
+    self.finger
   }
 
-  pub fn key(&self) -> Key {
-    self.key.clone()
+  pub fn key(&self) -> Option<Key> {
+    self.key
   }
 
   pub fn finger_scanner_serial(&self) -> &str {
@@ -208,93 +123,41 @@ impl Multi {
   }
 
   pub fn action(&self) -> Action {
-    self.action.clone()
+    self.action
   }
 
   pub fn input(&self) -> Option<DigitalInput> {
-    self.input.clone()
+    self.input
   }
 
-  fn nom(s: &str) -> nom::IResult<&str, Self> {
-    use nom::branch::alt;
-    use nom::character::{complete::{anychar, char}};
-
-    let (s, _) = char('1')(s)?;
-    let (s, separator) = anychar(s)?;
-    let (s, user_id) = digit_n(4)(s)?;
-    let (s, _) = char(separator)(s)?;
-    let (s, user_name) = alphanumeric_n(9)(s)?;
-
-    let user_name = if user_name.starts_with(UNDEFINED_CHAR) {
+  fn nom(input: &str) -> nom::IResult<&str, Self> {
+    let (input, _) = char('1')(input)?;
+    let (input, separator) = anychar(input)?;
+    let (input, user_id) = digit_n(4)(input)?;
+    let (input, _) = char(separator)(input)?;
+    let (input, user_name) = alphanumeric_n(9)(input)?;
+    let user_name = if user_name.starts_with('-') {
       None
     } else {
       Some(user_name.trim_end().to_owned())
     };
-
-    let (s, _) = char(separator)(s)?;
-    let (s, user_status) = optional_digit_min_max(0, 1)(s)?;
-    let user_status = user_status
-      .map(|n| match n {
-        '1' => UserStatus::Active,
-        '2' => UserStatus::Inactive,
-        _ => unreachable!(),
-      });
-    let (s, _) = char(separator)(s)?;
-    let (s, finger_id) = optional_digit_min_max(0, 9)(s)?;
-    let finger = finger_id.map(|f| match f {
-        '1' => Finger::LeftPinky,
-        '2' => Finger::LeftRing,
-        '3' => Finger::LeftMiddle,
-        '4' => Finger::LeftPointer,
-        '5' => Finger::LeftThumb,
-        '6' => Finger::RightThumb,
-        '7' => Finger::RightPointer,
-        '8' => Finger::RightMiddle,
-        '9' => Finger::RightRing,
-        '0' => Finger::RightPinky,
-        _ => unreachable!(),
-      });
-    let (s, _) = char(separator)(s)?;
-    let (s, key) = optional_digit_min_max(1, 4)(s)?;
-    let key = match key {
-      Some('1') => Key::Key1,
-      Some('2') => Key::Key2,
-      Some('3') => Key::Key3,
-      Some('4') => Key::Key4,
-      None => Key::PassKey,
-      _ => unreachable!(),
-    };
-    let (s, _) = char(separator)(s)?;
-    let (s, finger_scanner_serial) = alphanumeric_n(14)(s)?;
-    let (s, _) = char(separator)(s)?;
-    let (s, finger_scanner_name) = alphanumeric_n(4)(s)?;
+    let (input, _) = char(separator)(input)?;
+    let (input, user_status) = UserStatus::nom(input)?;
+    let (input, _) = char(separator)(input)?;
+    let (input, finger) = Finger::nom(input)?;
+    let (input, _) = char(separator)(input)?;
+    let (input, key) = Key::nom(input)?;
+    let (input, _) = char(separator)(input)?;
+    let (input, finger_scanner_serial) = alphanumeric_n(14)(input)?;
+    let (input, _) = char(separator)(input)?;
+    let (input, finger_scanner_name) = alphanumeric_n(4)(input)?;
     let finger_scanner_name = finger_scanner_name.trim_end().to_owned();
-    let (s, _) = char(separator)(s)?;
-    let (s, action) = alt((digit_min_max(1, 8), char('A'), char('B')))(s)?;
-    let action = match action {
-      '1' => Action::Open,
-      '2' => Action::RefusedUnknownFinger,
-      '3' => Action::RefusedTimeframeA,
-      '4' => Action::RefusedTimeframeB,
-      '5' => Action::RefusedInactive,
-      '6' => Action::RefusedOnlyAlwaysUsers,
-      '7' => Action::FingerScannerNotPaired,
-      '8' => Action::DigitalInput,
-      'A' => Action::OneMinuteCodeLock,
-      'B' => Action::FifteenMinuteCodeLock,
-      _ => unreachable!(),
-    };
-    let (s, _) = char(separator)(s)?;
-    let (s, input_id) = optional_digit_min_max(1, 4)(s)?;
-    let input = input_id.map(|f| match f {
-        '1' => DigitalInput::Input1,
-        '2' => DigitalInput::Input2,
-        '3' => DigitalInput::Input3,
-        '4' => DigitalInput::Input4,
-        _ => unreachable!(),
-      });
+    let (input, _) = char(separator)(input)?;
+    let (input, action) = Action::nom(input)?;
+    let (input, _) = char(separator)(input)?;
+    let (input, digital_input) = DigitalInput::nom(input)?;
 
-    Ok((s, Multi {
+    Ok((input, Multi {
       user_id: user_id as u16,
       user_name,
       user_status,
@@ -303,7 +166,7 @@ impl Multi {
       finger_scanner_serial,
       finger_scanner_name,
       action,
-      input,
+      input: digital_input,
     }))
   }
 }
@@ -334,7 +197,7 @@ mod tests {
     assert_eq!(packet.user_name, Some("JOSEF".to_owned()));
     assert_eq!(packet.user_status, Some(UserStatus::Active));
     assert_eq!(packet.finger, Some(Finger::RightPointer));
-    assert_eq!(packet.key, Key::Key2);
+    assert_eq!(packet.key, Some(Key::Key2));
     assert_eq!(packet.finger_scanner_serial, "80156809150025");
     assert_eq!(packet.finger_scanner_name, "GAR");
     assert_eq!(packet.action, Action::Open);
