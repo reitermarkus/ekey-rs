@@ -10,32 +10,49 @@ const UNDEFINED_CHAR: char = '-';
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum UserStatus {
+  /// Active.
   Active,
+  /// Inactive.
   Inactive,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Finger {
+  /// Left pinky finger.
   LeftPinky = 1,
+  /// Left ring finger.
   LeftRing = 2,
+  /// Left middle finger.
   LeftMiddle = 3,
+  /// Left pointer finger.
   LeftPointer = 4,
+  /// Left thumb.
   LeftThumb = 5,
+  /// Right thumb.
   RightThumb = 6,
+  /// Right pointer finger.
   RightPointer = 7,
+  /// Right middle finger.
   RightMiddle = 8,
+  /// Right ring finger.
   RightRing = 9,
+  /// Right pinky finger.
   RightPinky = 0,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Key {
+  /// Key 1
   Key1,
+  /// Key 2
   Key2,
+  /// Key 2
   Key3,
+  /// Key 2
   Key4,
+  /// Pass Key
   PassKey,
 }
 
@@ -43,24 +60,38 @@ pub enum Key {
 #[serde(rename_all = "snake_case")]
 #[repr(u8)]
 pub enum Action {
+  /// Open.
   Open = 1,
+  /// Refused unknown finger.
   RefusedUnknownFinger = 2,
+  /// Refused timeframe A.
   RefusedTimeframeA = 3,
+  /// Refused timeframe B.
   RefusedTimeframeB = 4,
+  /// Refused inactive.
   RefusedInactive = 5,
+  /// Refused only always users.
   RefusedOnlyAlwaysUsers = 6,
-  FingerscannerNotPaired = 7,
+  /// Finger scanner not paired.
+  FingerScannerNotPaired = 7,
+  /// Digital input.
   DigitalInput = 8,
+  /// One minute code lock.
   OneMinuteCodeLock = b'A',
+  /// Fifteen minute code lock.
   FifteenMinuteCodeLock = b'B',
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DigitalInput {
+  /// Input 1
   Input1,
+  /// Input 2
   Input2,
+  /// Input 3
   Input3,
+  /// Input 4
   Input4,
 }
 
@@ -247,7 +278,7 @@ impl Multi {
       '4' => Action::RefusedTimeframeB,
       '5' => Action::RefusedInactive,
       '6' => Action::RefusedOnlyAlwaysUsers,
-      '7' => Action::FingerscannerNotPaired,
+      '7' => Action::FingerScannerNotPaired,
       '8' => Action::DigitalInput,
       'A' => Action::OneMinuteCodeLock,
       'B' => Action::FifteenMinuteCodeLock,
