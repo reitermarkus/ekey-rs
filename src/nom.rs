@@ -1,4 +1,4 @@
-use nom::multi::fold_many_m_n;
+use nom::{combinator::recognize, multi::fold_many_m_n};
 
 pub fn digit(s: &str) -> nom::IResult<&str, char> {
   match s.chars().next() {
@@ -18,11 +18,6 @@ pub fn digit_n(n: usize) -> impl FnMut(&str) -> nom::IResult<&str, usize> {
   move |s: &str| fold_many_m_n(n, n, digit, || 0, |acc: usize, c| acc * 10 + c.to_digit(10).unwrap_or(0) as usize)(s)
 }
 
-pub fn alphanumeric_n(n: usize) -> impl FnMut(&str) -> nom::IResult<&str, String> {
-  move |s: &str| {
-    fold_many_m_n(n, n, alphanumeric, String::new, |mut s: String, c| {
-      s.push(c);
-      s
-    })(s)
-  }
+pub fn alphanumeric_n(n: usize) -> impl FnMut(&str) -> nom::IResult<&str, &str> {
+  move |s: &str| recognize(fold_many_m_n(n, n, alphanumeric, || (), |_, _| ()))(s)
 }

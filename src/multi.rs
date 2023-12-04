@@ -160,7 +160,7 @@ impl Multi {
         user_status,
         finger,
         key,
-        finger_scanner_serial,
+        finger_scanner_serial: finger_scanner_serial.to_owned(),
         finger_scanner_name,
         action,
         input: digital_input,
