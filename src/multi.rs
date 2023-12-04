@@ -193,7 +193,7 @@ mod tests {
     assert_eq!(packet.user_id, 3);
     assert_eq!(packet.user_name, Some("JOSEF".to_owned()));
     assert_eq!(packet.user_status, Some(UserStatus::Active));
-    assert_eq!(packet.finger, Some(Finger::RightPointer));
+    assert_eq!(packet.finger, Some(Finger::RightIndex));
     assert_eq!(packet.key, Some(Key::Key2));
     assert_eq!(packet.finger_scanner_serial, 80156809150025);
     assert_eq!(packet.finger_scanner_name, "GAR");

@@ -110,7 +110,7 @@ mod tests {
     let packet = "1_0003_7_80156809150025_1_2".parse::<Home>().unwrap();
 
     assert_eq!(packet.user_id, 3);
-    assert_eq!(packet.finger, Some(Finger::RightPointer));
+    assert_eq!(packet.finger, Some(Finger::RightIndex));
     assert_eq!(packet.finger_scanner_serial, 80156809150025);
     assert_eq!(packet.action, Action::Open);
     assert_eq!(packet.relay, Some(Relay::Relay2));
