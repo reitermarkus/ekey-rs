@@ -1,23 +1,24 @@
-use nom::{combinator::recognize, multi::fold_many_m_n};
+use nom::{bytes::complete::take_while_m_n, multi::fold_many_m_n};
 
-pub fn digit(s: &str) -> nom::IResult<&str, char> {
+fn digit(s: &str) -> nom::IResult<&str, char> {
   match s.chars().next() {
     Some(c) if c.is_ascii_digit() => Ok((&s[1..], c)),
     _ => Err(nom::Err::Error(nom::error::Error::new(s, nom::error::ErrorKind::IsA))),
   }
 }
 
-pub fn alphanumeric(s: &str) -> nom::IResult<&str, char> {
-  match s.chars().next() {
-    Some(c) if c.is_alphanumeric() || c == ' ' || c == '*' => Ok((&s[1..], c)),
-    _ => Err(nom::Err::Error(nom::error::Error::new(s, nom::error::ErrorKind::IsA))),
-  }
+pub fn u16_n(n: usize) -> impl FnMut(&str) -> nom::IResult<&str, u16> {
+  move |s: &str| fold_many_m_n(n, n, digit, || 0, |acc, c| acc * 10 + c.to_digit(10).unwrap() as u16)(s)
 }
 
-pub fn digit_n(n: usize) -> impl FnMut(&str) -> nom::IResult<&str, usize> {
-  move |s: &str| fold_many_m_n(n, n, digit, || 0, |acc: usize, c| acc * 10 + c.to_digit(10).unwrap_or(0) as usize)(s)
+pub fn u64_n(n: usize) -> impl FnMut(&str) -> nom::IResult<&str, u64> {
+  move |s: &str| fold_many_m_n(n, n, digit, || 0, |acc, c| acc * 10 + c.to_digit(10).unwrap() as u64)(s)
+}
+
+fn is_alphanumeric(c: char) -> bool {
+  c.is_alphanumeric() || c == ' ' || c == '*'
 }
 
 pub fn alphanumeric_n(n: usize) -> impl FnMut(&str) -> nom::IResult<&str, &str> {
-  move |s: &str| recognize(fold_many_m_n(n, n, alphanumeric, || (), |_, _| ()))(s)
+  move |s: &str| take_while_m_n(n, n, is_alphanumeric)(s)
 }

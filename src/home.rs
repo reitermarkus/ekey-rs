@@ -10,11 +10,11 @@ use nom::character::complete::{anychar, char};
 use serde::Serialize;
 
 use crate::{
-  nom::{alphanumeric_n, digit_n},
+  nom::{u16_n, u64_n},
   Action, Finger,
 };
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Relay {
   /// Relay 1
@@ -47,29 +47,46 @@ impl Relay {
 pub struct Home {
   user_id: u16,
   finger: Option<Finger>,
-  finger_scanner_serial: String,
+  finger_scanner_serial: u64,
   action: Action,
   relay: Option<Relay>,
 }
 
 impl Home {
+  pub fn user_id(&self) -> u16 {
+    self.user_id
+  }
+
+  pub fn finger(&self) -> Option<Finger> {
+    self.finger
+  }
+
+  pub fn finger_scanner_serial(&self) -> u64 {
+    self.finger_scanner_serial
+  }
+
+  pub fn action(&self) -> Action {
+    self.action
+  }
+
+  pub fn relay(&self) -> Option<Relay> {
+    self.relay
+  }
+
   fn nom(input: &str) -> nom::IResult<&str, Self> {
     let (input, _) = char('1')(input)?;
     let (input, separator) = anychar(input)?;
-    let (input, user_id) = digit_n(4)(input)?;
+    let (input, user_id) = u16_n(4)(input)?;
     let (input, _) = char(separator)(input)?;
     let (input, finger) = Finger::nom(input)?;
     let (input, _) = char(separator)(input)?;
-    let (input, finger_scanner_serial) = alphanumeric_n(14)(input)?;
+    let (input, finger_scanner_serial) = u64_n(14)(input)?;
     let (input, _) = char(separator)(input)?;
     let (input, action) = Action::nom(input)?;
     let (input, _) = char(separator)(input)?;
     let (input, relay) = Relay::nom(input)?;
 
-    Ok((
-      input,
-      Self { user_id: user_id as u16, finger, finger_scanner_serial: finger_scanner_serial.to_owned(), action, relay },
-    ))
+    Ok((input, Self { user_id, finger, finger_scanner_serial: finger_scanner_serial.to_owned(), action, relay }))
   }
 }
 
@@ -94,7 +111,7 @@ mod tests {
 
     assert_eq!(packet.user_id, 3);
     assert_eq!(packet.finger, Some(Finger::RightPointer));
-    assert_eq!(packet.finger_scanner_serial, "80156809150025");
+    assert_eq!(packet.finger_scanner_serial, 80156809150025);
     assert_eq!(packet.action, Action::Open);
     assert_eq!(packet.relay, Some(Relay::Relay2));
   }

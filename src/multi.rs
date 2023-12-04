@@ -9,7 +9,7 @@ use nom::{
 use serde::Serialize;
 
 use crate::{
-  nom::{alphanumeric_n, digit_n},
+  nom::{alphanumeric_n, u16_n, u64_n},
   Action, Finger,
 };
 
@@ -86,7 +86,7 @@ pub struct Multi {
   user_status: Option<UserStatus>,
   finger: Option<Finger>,
   key: Option<Key>,
-  finger_scanner_serial: String,
+  finger_scanner_serial: u64,
   finger_scanner_name: String,
   action: Action,
   input: Option<DigitalInput>,
@@ -113,8 +113,8 @@ impl Multi {
     self.key
   }
 
-  pub fn finger_scanner_serial(&self) -> &str {
-    &self.finger_scanner_serial
+  pub fn finger_scanner_serial(&self) -> u64 {
+    self.finger_scanner_serial
   }
 
   pub fn finger_scanner_name(&self) -> &str {
@@ -132,7 +132,7 @@ impl Multi {
   fn nom(input: &str) -> nom::IResult<&str, Self> {
     let (input, _) = char('1')(input)?;
     let (input, separator) = anychar(input)?;
-    let (input, user_id) = digit_n(4)(input)?;
+    let (input, user_id) = u16_n(4)(input)?;
     let (input, _) = char(separator)(input)?;
     let (input, user_name) = alphanumeric_n(9)(input)?;
     let user_name = if user_name.starts_with('-') { None } else { Some(user_name.trim_end().to_owned()) };
@@ -143,7 +143,7 @@ impl Multi {
     let (input, _) = char(separator)(input)?;
     let (input, key) = Key::nom(input)?;
     let (input, _) = char(separator)(input)?;
-    let (input, finger_scanner_serial) = alphanumeric_n(14)(input)?;
+    let (input, finger_scanner_serial) = u64_n(14)(input)?;
     let (input, _) = char(separator)(input)?;
     let (input, finger_scanner_name) = alphanumeric_n(4)(input)?;
     let finger_scanner_name = finger_scanner_name.trim_end().to_owned();
@@ -155,7 +155,7 @@ impl Multi {
     Ok((
       input,
       Multi {
-        user_id: user_id as u16,
+        user_id,
         user_name,
         user_status,
         finger,
@@ -195,7 +195,7 @@ mod tests {
     assert_eq!(packet.user_status, Some(UserStatus::Active));
     assert_eq!(packet.finger, Some(Finger::RightPointer));
     assert_eq!(packet.key, Some(Key::Key2));
-    assert_eq!(packet.finger_scanner_serial, "80156809150025");
+    assert_eq!(packet.finger_scanner_serial, 80156809150025);
     assert_eq!(packet.finger_scanner_name, "GAR");
     assert_eq!(packet.action, Action::Open);
     assert_eq!(packet.input, None);
