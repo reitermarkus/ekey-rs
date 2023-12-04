@@ -1,5 +1,4 @@
-use std::net::UdpSocket;
-use std::str;
+use std::{net::UdpSocket, str};
 
 use ekey::multi::Multi;
 

@@ -7,7 +7,7 @@ mod action;
 pub use action::Action;
 mod finger;
 pub use finger::Finger;
-pub(crate) mod nom;
 pub mod home;
 pub mod multi;
+pub(crate) mod nom;
 pub mod rare;

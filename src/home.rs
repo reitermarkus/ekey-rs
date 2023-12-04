@@ -1,14 +1,18 @@
 use core::str::FromStr;
 
-use nom::branch::alt;
-use nom::combinator::all_consuming;
-use nom::Finish;
-use nom::combinator::value;
+use nom::{
+  branch::alt,
+  combinator::{all_consuming, value},
+  Finish,
+};
 
-use nom::character::{complete::{anychar, char}};
+use nom::character::complete::{anychar, char};
 use serde::Serialize;
 
-use crate::{Action, Finger, nom::{alphanumeric_n, digit_n}};
+use crate::{
+  nom::{alphanumeric_n, digit_n},
+  Action, Finger,
+};
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -62,13 +66,7 @@ impl Home {
     let (input, _) = char(separator)(input)?;
     let (input, relay) = Relay::nom(input)?;
 
-    Ok((input, Self {
-      user_id: user_id as u16,
-      finger,
-      finger_scanner_serial,
-      action,
-      relay,
-    }))
+    Ok((input, Self { user_id: user_id as u16, finger, finger_scanner_serial, action, relay }))
   }
 }
 

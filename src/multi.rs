@@ -1,13 +1,17 @@
+use alloc::{borrow::ToOwned, string::String};
 use core::str::FromStr;
-use alloc::string::String;
-use alloc::borrow::ToOwned;
 
-use nom::branch::alt;
-use nom::character::{complete::{anychar, char}};
-use nom::combinator::value;
+use nom::{
+  branch::alt,
+  character::complete::{anychar, char},
+  combinator::value,
+};
 use serde::Serialize;
 
-use crate::{Action, Finger, nom::{digit_n, alphanumeric_n}};
+use crate::{
+  nom::{alphanumeric_n, digit_n},
+  Action, Finger,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -20,11 +24,7 @@ pub enum UserStatus {
 
 impl UserStatus {
   pub(crate) fn nom(input: &str) -> nom::IResult<&str, Option<Self>> {
-    alt((
-      value(Some(Self::Active), char('1')),
-      value(Some(Self::Inactive), char('2')),
-      value(None, char('-')),
-    ))(input)
+    alt((value(Some(Self::Active), char('1')), value(Some(Self::Inactive), char('2')), value(None, char('-'))))(input)
   }
 }
 
@@ -92,7 +92,6 @@ pub struct Multi {
   input: Option<DigitalInput>,
 }
 
-
 impl Multi {
   pub fn user_id(&self) -> u16 {
     self.user_id
@@ -136,11 +135,7 @@ impl Multi {
     let (input, user_id) = digit_n(4)(input)?;
     let (input, _) = char(separator)(input)?;
     let (input, user_name) = alphanumeric_n(9)(input)?;
-    let user_name = if user_name.starts_with('-') {
-      None
-    } else {
-      Some(user_name.trim_end().to_owned())
-    };
+    let user_name = if user_name.starts_with('-') { None } else { Some(user_name.trim_end().to_owned()) };
     let (input, _) = char(separator)(input)?;
     let (input, user_status) = UserStatus::nom(input)?;
     let (input, _) = char(separator)(input)?;
@@ -157,17 +152,20 @@ impl Multi {
     let (input, _) = char(separator)(input)?;
     let (input, digital_input) = DigitalInput::nom(input)?;
 
-    Ok((input, Multi {
-      user_id: user_id as u16,
-      user_name,
-      user_status,
-      finger,
-      key,
-      finger_scanner_serial,
-      finger_scanner_name,
-      action,
-      input: digital_input,
-    }))
+    Ok((
+      input,
+      Multi {
+        user_id: user_id as u16,
+        user_name,
+        user_status,
+        finger,
+        key,
+        finger_scanner_serial,
+        finger_scanner_name,
+        action,
+        input: digital_input,
+      },
+    ))
   }
 }
 
@@ -175,8 +173,7 @@ impl FromStr for Multi {
   type Err = ();
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
-    use nom::combinator::all_consuming;
-    use nom::Finish;
+    use nom::{combinator::all_consuming, Finish};
 
     match all_consuming(Self::nom)(s).finish() {
       Ok((_, multi)) => Ok(multi),

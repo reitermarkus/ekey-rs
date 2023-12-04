@@ -1,6 +1,4 @@
-
-use nom::{branch::alt, combinator::value};
-use nom::character::{complete::{char}};
+use nom::{branch::alt, character::complete::char, combinator::value};
 use serde::Serialize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize)]
